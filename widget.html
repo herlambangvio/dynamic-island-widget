@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynamic Island Widget</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12px;
+    }
+    .glass {
+      background: rgba(20, 20, 25, 0.75);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.45);
+    }
+    .island {
+      width: 290px;
+      height: 42px;
+      border-radius: 999px;
+      overflow: hidden;
+      transition: all 0.35s ease;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    .island.expanded {
+      width: 380px;
+      height: 190px;
+      border-radius: 28px;
+    }
+    .collapsed {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+      padding: 0 14px;
+      box-sizing: border-box;
+    }
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .title {
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
+    }
+    .compactStatus {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.82);
+      font: 10px Consolas, monospace;
+      white-space: nowrap;
+    }
+    .eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 18px;
+    }
+    .eq span {
+      display: block;
+      width: 5px;
+      border-radius: 20px;
+      background: #7dd3fc;
+      animation: bounce 1.2s ease-in-out infinite alternate;
+    }
+    .eq span:nth-child(1) { animation-delay: 0.1s; }
+    .eq span:nth-child(2) { animation-delay: 0.25s; }
+    .eq span:nth-child(3) { animation-delay: 0.35s; }
+    @keyframes bounce {
+      0% { height: 10%; opacity: 0.5; }
+      50% { height: 100%; opacity: 1; }
+      100% { height: 35%; opacity: 0.8; }
+    }
+    .paused .eq span {
+      animation-play-state: paused;
+    }
+    .expandedSection {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      justify-content: space-between;
+    }
+    .island.expanded .expandedSection {
+      display: flex;
+    }
+    .island.expanded .collapsed {
+      display: none;
+    }
+    .topRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .album {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: #2b2f36;
+    }
+    .meta {
+      min-width: 0;
+      flex: 1;
+    }
+    .meta .song {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meta .artist {
+      font-size: 10px;
+      color: rgba(255,255,255,0.7);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sourceLine {
+      margin-top: 3px;
+      color: #7dd3fc;
+      font-size: 9px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .tab {
+      width: 26px;
+      height: 24px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255,255,255,0.75);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+    .barWrap {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      width: 35%;
+      background: #7dd3fc;
+      border-radius: inherit;
+    }
+    .timeRow {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: rgba(255,255,255,0.7);
+      font-family: Consolas, monospace;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .transportButtons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .transportButton {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: #f4f6f8;
+      background: rgba(255,255,255,0.12);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .transportButton.primary {
+      width: 36px;
+      height: 36px;
+      color: #07131a;
+      background: #7dd3fc;
+    }
+    .transportButton:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .controlMessage {
+      min-height: 11px;
+      color: rgba(255,255,255,0.6);
+      font-size: 9px;
+    }
+    .playbackState {
+      color: #7dd3fc;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .expandedStatus {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .expandedClockBattery {
+      color: rgba(255,255,255,0.75);
+      font: 10px Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="island" class="island glass">
+    <div class="collapsed">
+      <div class="left">
+        <span style="font-size:14px; color:#7dd3fc;">♫</span>
+        <div id="collapsedTitle" class="title">Midnight City</div>
+      </div>
+      <div class="compactStatus">
+        <span id="clockCompact">--:--</span>
+        <span id="batteryCompact" title="Battery percentage">N/A</span>
+        <div id="eq" class="eq">
+          <span style="height: 8px;"></span>
+          <span style="height: 16px;"></span>
+          <span style="height: 22px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="expandedSection">
+      <div class="topRow">
+        <div class="left" style="flex:1;">
+          <img id="albumArt" class="album" alt="Album artwork" hidden />
+          <div class="meta">
+            <div id="song" class="song">Midnight City</div>
+            <div id="artist" class="artist">M83 — Synthwave</div>
+          </div>
+        </div>
+
+        <div class="expandedStatus">
+          <div class="expandedClockBattery"><span id="clockExpanded">--:--</span> · <span id="batteryExpanded">N/A</span></div>
+          <div id="playbackState" class="playbackState">Waiting</div>
+        </div>
+      </div>
+
+      <div class="barWrap">
+        <div id="progressBar" class="bar"></div>
+      </div>
+
+      <div class="timeRow">
+        <span id="currentTime">1:24</span>
+        <span id="durationTime">4:03</span>
+      </div>
+
+      <div class="controls">
+        <span id="mediaSource" class="sourceLine">Waiting for browser media</span>
+        <div class="transportButtons">
+          <button id="previousButton" class="transportButton" title="Previous track" aria-label="Previous track" disabled>⏮</button>
+          <button id="playPauseButton" class="transportButton primary" title="Play" aria-label="Play" disabled>▶</button>
+          <button id="nextButton" class="transportButton" title="Next track" aria-label="Next track" disabled>⏭</button>
+        </div>
+      </div>
+      <div id="controlMessage" class="controlMessage" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <script>
+    const island = document.getElementById('island');
+    const collapsedTitle = document.getElementById('collapsedTitle');
+    const song = document.getElementById('song');
+    const artist = document.getElementById('artist');
+    const eq = document.getElementById('eq');
+    const progressBar = document.getElementById('progressBar');
+    const currentTime = document.getElementById('currentTime');
+    const durationTime = document.getElementById('durationTime');
+    const playbackState = document.getElementById('playbackState');
+    const mediaSource = document.getElementById('mediaSource');
+    const albumArt = document.getElementById('albumArt');
+    const controlMessage = document.getElementById('controlMessage');
+    const previousButton = document.getElementById('previousButton');
+    const playPauseButton = document.getElementById('playPauseButton');
+    const nextButton = document.getElementById('nextButton');
+    const clockCompact = document.getElementById('clockCompact');
+    const clockExpanded = document.getElementById('clockExpanded');
+    const batteryCompact = document.getElementById('batteryCompact');
+    const batteryExpanded = document.getElementById('batteryExpanded');
+
+    let state = {
+      connected: false,
+      playing: false,
+      expanded: false,
+      title: 'No browser media detected',
+      artist: 'Start playback in a browser tab',
+      source: 'Waiting for browser media',
+      artwork: '',
+      position: 0,
+      duration: 0,
+      controlMessage: ''
+    };
+
+    function formatTime(sec) {
+      if (!Number.isFinite(sec) || sec < 0) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function updateClock() {
+      const time = new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(new Date());
+      clockCompact.textContent = time;
+      clockExpanded.textContent = time;
+    }
+
+    async function initializeBattery() {
+      if (!navigator.getBattery) return;
+
+      try {
+        const battery = await navigator.getBattery();
+        const update = () => {
+          const percentage = `${Math.round(battery.level * 100)}%`;
+          batteryCompact.textContent = percentage;
+          batteryExpanded.textContent = percentage;
+          const title = battery.charging ? `Battery ${percentage}, charging` : `Battery ${percentage}`;
+          batteryCompact.title = title;
+          batteryExpanded.title = title;
+        };
+
+        update();
+        battery.addEventListener('levelchange', update);
+        battery.addEventListener('chargingchange', update);
+      } catch {
+        batteryCompact.title = 'Battery status unavailable';
+        batteryExpanded.title = 'Battery status unavailable';
+      }
+    }
+
+    function render() {
+      collapsedTitle.textContent = state.title;
+      song.textContent = state.title;
+      artist.textContent = state.artist;
+      mediaSource.textContent = state.source;
+      playbackState.textContent = state.connected ? (state.playing ? 'Playing' : 'Paused') : 'Waiting';
+      controlMessage.textContent = state.controlMessage || '';
+      previousButton.disabled = !state.connected;
+      nextButton.disabled = !state.connected;
+      playPauseButton.disabled = !state.connected;
+      playPauseButton.textContent = state.playing ? 'Ⅱ' : '▶';
+      playPauseButton.title = state.playing ? 'Pause' : 'Play';
+      playPauseButton.setAttribute('aria-label', playPauseButton.title);
+      eq.classList.toggle('paused', !state.playing || !state.connected);
+      island.classList.toggle('expanded', state.expanded);
+      const progress = state.duration > 0 ? (state.position / state.duration) * 100 : 0;
+      progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+      currentTime.textContent = formatTime(state.position);
+      durationTime.textContent = formatTime(state.duration);
+      albumArt.src = state.artwork || '';
+      albumArt.hidden = !state.artwork;
+    }
+
+    let pointerDrag = null;
+    let suppressClick = false;
+
+    island.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || event.target.closest('button')) return;
+
+      pointerDrag = {
+        pointerId: event.pointerId,
+        startX: event.screenX,
+        startY: event.screenY,
+        moved: false
+      };
+      island.setPointerCapture(event.pointerId);
+    });
+
+    island.addEventListener('pointermove', (event) => {
+      if (!pointerDrag || event.pointerId !== pointerDrag.pointerId) return;
+
+      const deltaX = event.screenX - pointerDrag.startX;
+      const deltaY = event.screenY - pointerDrag.startY;
+      if (!pointerDrag.moved && Math.hypot(deltaX, deltaY) > 4) {
+        pointerDrag.moved = true;
+        window.electronAPI.beginWidgetDrag({ x: pointerDrag.startX, y: pointerDrag.startY });
+      }
+
+      if (pointerDrag.moved) {
+        window.electronAPI.moveWidgetDrag({ x: event.screenX, y: event.screenY });
+      }
+    });
+
+    function finishPointerDrag(event) {
+      if (!pointerDrag || event.pointerId !== pointerDrag.pointerId) return;
+      if (pointerDrag.moved) {
+        suppressClick = true;
+        window.electronAPI.endWidgetDrag();
+      }
+      pointerDrag = null;
+    }
+
+    island.addEventListener('pointerup', finishPointerDrag);
+    island.addEventListener('pointercancel', finishPointerDrag);
+
+    island.addEventListener('click', async () => {
+      if (suppressClick) {
+        suppressClick = false;
+        return;
+      }
+      const newState = { expanded: !state.expanded };
+      state = { ...state, ...newState };
+      await window.electronAPI.updateState(newState);
+    });
+
+    island.addEventListener('contextmenu', async (event) => {
+      event.preventDefault();
+      await window.electronAPI.showWidgetMenu();
+    });
+
+    for (const [button, command] of [
+      [previousButton, 'previous'],
+      [playPauseButton, 'playPause'],
+      [nextButton, 'next']
+    ]) {
+      button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await window.electronAPI.updateState({ command });
+      });
+    }
+
+    window.electronAPI.onStateUpdate((nextState) => {
+      state = {
+        ...state,
+        ...nextState
+      };
+      render();
+    });
+
+    updateClock();
+    window.setInterval(updateClock, 15000);
+    initializeBattery();
+
+    window.electronAPI.getState().then((nextState) => {
+      state = { ...state, ...nextState };
+      render();
+    });
+  </script>
+</body>
+</html>

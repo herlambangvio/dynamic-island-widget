@@ -1,0 +1,54 @@
+{
+  "name": "dynamic-island-widget",
+  "version": "1.0.0",
+  "description": "Synced dynamic island widget app",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.yourcompany.dynamicisland.widget",
+    "productName": "Dynamic Island Widget",
+    "artifactName": "${productName}-${version}-${os}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "extraResources": [
+      {
+        "from": "browser-extension",
+        "to": "browser-extension"
+      }
+    ],
+    "files": [
+      "**/*",
+      "!**/.git/**",
+      "!**/node_modules/**",
+      "!**/dist/**"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  }
+}

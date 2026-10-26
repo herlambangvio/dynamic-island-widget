@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browser Media Bridge</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px;
+      color: #f4f6f8;
+      background: #10141b;
+      font-family: "Segoe UI", sans-serif;
+    }
+    .panel {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      background: #171d27;
+    }
+    h1 { margin-top: 0; font-size: 26px; }
+    .track {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+    }
+    .small { margin-top: 8px; color: #aab4c0; font-size: 13px; }
+    button {
+      margin-top: 18px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 6px;
+      color: #08131b;
+      background: #7dd3fc;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .transport {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .transport button { margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Browser Media Bridge</h1>
+    <div class="track">
+      <div id="title">No browser media detected</div>
+      <div id="artist" class="small">Start playback in a browser tab</div>
+      <div id="source" class="small">Waiting for browser media</div>
+      <div id="status" class="small">Extension not connected</div>
+    </div>
+    <div class="transport">
+      <button id="previousBtn" aria-label="Previous track" title="Previous track" disabled>⏮</button>
+      <button id="playPauseBtn" aria-label="Play" title="Play" disabled>▶</button>
+      <button id="nextBtn" aria-label="Next track" title="Next track" disabled>⏭</button>
+    </div>
+    <button id="openExtensionBtn">Open extension folder</button>
+    <p class="small">In Chrome or Edge, open the extensions page, enable Developer mode, choose Load unpacked, then select the opened folder.</p>
+  </main>
+
+  <script>
+    const titleEl = document.getElementById('title');
+    const artistEl = document.getElementById('artist');
+    const sourceEl = document.getElementById('source');
+    const statusEl = document.getElementById('status');
+    const openExtensionBtn = document.getElementById('openExtensionBtn');
+    const previousBtn = document.getElementById('previousBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function render(state) {
+      titleEl.textContent = state.title;
+      artistEl.textContent = state.artist;
+      sourceEl.textContent = state.source;
+      statusEl.textContent = state.controlMessage || (state.connected
+        ? (state.playing ? 'Playing' : 'Paused')
+        : 'No browser media detected');
+      previousBtn.disabled = !state.connected;
+      nextBtn.disabled = !state.connected;
+      playPauseBtn.disabled = !state.connected;
+      playPauseBtn.textContent = state.playing ? 'Ⅱ' : '▶';
+      playPauseBtn.title = state.playing ? 'Pause' : 'Play';
+      playPauseBtn.setAttribute('aria-label', playPauseBtn.title);
+    }
+
+    for (const [button, command] of [
+      [previousBtn, 'previous'],
+      [playPauseBtn, 'playPause'],
+      [nextBtn, 'next']
+    ]) {
+      button.addEventListener('click', () => window.electronAPI.updateState({ command }));
+    }
+
+    openExtensionBtn.addEventListener('click', async () => {
+      openExtensionBtn.disabled = true;
+      try {
+        await window.electronAPI.openExtensionFolder();
+      } finally {
+        openExtensionBtn.disabled = false;
+      }
+    });
+
+    window.electronAPI.onStateUpdate(render);
+    window.electronAPI.getState().then(render);
+  </script>
+</body>
+</html>
