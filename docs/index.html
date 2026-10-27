@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090b10" />
+  <meta name="description" content="An interactive web preview of the Dynamic Island desktop widget." />
+  <title>Dynamic Island Widget — Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #090b10;
+      color: #f4f6fb;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% 12%, rgba(84, 106, 175, 0.19), transparent 42%),
+        radial-gradient(ellipse at 50% 100%, rgba(37, 83, 91, 0.12), transparent 42%),
+        #090b10;
+    }
+
+    button, a { font: inherit; }
+
+    .page {
+      width: min(100% - 40px, 960px);
+      margin: 0 auto;
+      padding: 48px 0 56px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #93a2c7;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(32px, 6vw, 52px);
+      letter-spacing: -0.055em;
+      line-height: 1.05;
+      text-align: center;
+    }
+
+    .intro {
+      max-width: 580px;
+      margin: 0 auto;
+      color: #9da5b7;
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .demo {
+      display: grid;
+      min-height: 390px;
+      margin: 36px 0 22px;
+      padding: 28px 18px;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 28px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08), transparent 55%),
+        linear-gradient(145deg, #171a24, #10131b 68%);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.3);
+    }
+
+    .demo-label {
+      align-self: end;
+      margin: 0 0 28px;
+      color: #778096;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .island {
+      width: min(100%, 380px);
+      height: 54px;
+      padding: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 28px;
+      background: rgba(15, 16, 21, 0.82);
+      box-shadow: 0 16px 50px rgba(0,0,0,0.55), inset 0 1px rgba(255,255,255,0.08);
+      color: white;
+      cursor: pointer;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: height 320ms ease, border-radius 320ms ease, background 320ms ease;
+    }
+
+    .island:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 2px solid #82ddf4;
+      outline-offset: 4px;
+    }
+
+    .island.expanded {
+      height: 242px;
+      border-radius: 25px;
+      cursor: default;
+    }
+
+    .compact {
+      display: flex;
+      width: 100%;
+      height: 40px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 9px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .compact-track, .compact-right, .track-info, .controls, .track-top {
+      display: flex;
+      align-items: center;
+    }
+
+    .compact-track { min-width: 0; gap: 10px; }
+    .compact-right { flex-shrink: 0; gap: 12px; color: #c4c9d4; font: 11px ui-monospace, monospace; }
+
+    .music-mark {
+      display: grid;
+      width: 25px;
+      height: 25px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #d5a5ff, #7971e8);
+      color: #171326;
+      font-size: 14px;
+    }
+
+    .compact-title {
+      overflow: hidden;
+      color: #f4f5f8;
+      font-size: 12px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .equalizer { display: flex; height: 18px; align-items: end; gap: 3px; }
+    .equalizer span { width: 3px; height: 35%; border-radius: 5px; background: #8be4dd; animation: bounce 800ms ease-in-out infinite alternate; }
+    .equalizer span:nth-child(2) { height: 80%; animation-delay: 180ms; }
+    .equalizer span:nth-child(3) { height: 55%; animation-delay: 330ms; }
+    .equalizer.paused span { animation-play-state: paused; }
+
+    @keyframes bounce { to { height: 100%; } }
+
+    .expanded-content {
+      display: flex;
+      height: 100%;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 11px 8px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(7px);
+      transition: opacity 180ms ease 80ms, transform 180ms ease 80ms;
+    }
+
+    .expanded .expanded-content { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .expanded .compact { display: none; }
+    .track-top { gap: 12px; }
+
+    .art {
+      display: grid;
+      width: 52px;
+      height: 52px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 13px;
+      background: linear-gradient(145deg, #e1a3b8, #a35b85 48%, #473863);
+      box-shadow: inset 0 1px rgba(255,255,255,0.25);
+      font-size: 23px;
+    }
+
+    .track-info { min-width: 0; flex: 1; align-items: flex-start; flex-direction: column; gap: 5px; }
+    .track-title, .track-artist { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .track-title { font-size: 13px; font-weight: 700; }
+    .track-artist { color: #a7adbb; font-size: 11px; }
+
+    .playback {
+      flex: 0 0 auto;
+      color: #8be4dd;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .collapse {
+      flex: 0 0 auto;
+      padding: 4px 0 4px 4px;
+      border: 0;
+      background: transparent;
+      color: #a7adbb;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .progress { height: 4px; overflow: hidden; border-radius: 9px; background: rgba(255,255,255,0.14); }
+    .progress-fill { width: 31%; height: 100%; border-radius: inherit; background: #8be4dd; transition: width 300ms linear; }
+    .times { display: flex; justify-content: space-between; color: #959cac; font: 10px ui-monospace, monospace; }
+    .controls { justify-content: center; gap: 17px; }
+
+    .control {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      color: white;
+      cursor: pointer;
+    }
+
+    .control.primary { width: 40px; height: 40px; background: #8be4dd; color: #102124; font-size: 16px; }
+    .control:hover { background-color: rgba(255,255,255,0.2); }
+    .control.primary:hover { background: #adf1eb; }
+
+    .demo-hint {
+      align-self: start;
+      margin: 26px 0 0;
+      color: #858da0;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .note {
+      display: flex;
+      gap: 14px;
+      padding: 17px 19px;
+      border: 1px solid rgba(139,228,221,0.14);
+      border-radius: 16px;
+      background: rgba(139,228,221,0.045);
+      color: #aeb5c4;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .note-icon { color: #8be4dd; font-size: 16px; }
+    .note strong { color: #edf0f7; }
+    footer { margin-top: 28px; color: #70788b; font-size: 11px; text-align: center; }
+
+    @media (max-width: 520px) {
+      .page { width: min(100% - 28px, 960px); padding-top: 34px; }
+      .demo { min-height: 330px; padding: 22px 12px; border-radius: 22px; }
+      .island.expanded { height: 228px; }
+      .note { padding: 15px; }
+      .links { flex-wrap: wrap; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">A desktop companion for your music</p>
+    <h1>Dynamic Island Widget</h1>
+    <p class="intro">A small, always-on-top music widget for Windows. Explore the interactive preview below, then run the desktop app to connect it to browser playback.</p>
+
+    <section class="demo" aria-label="Interactive widget preview">
+      <p class="demo-label">Interactive preview</p>
+      <div id="island" class="island">
+        <button id="compact" class="compact" type="button" aria-label="Expand music widget" aria-expanded="false">
+          <div class="compact-track">
+            <span class="music-mark" aria-hidden="true">♫</span>
+            <span id="compactTitle" class="compact-title">Midnight City</span>
+          </div>
+          <div class="compact-right">
+            <span id="clock">--:--</span>
+            <div id="equalizer" class="equalizer" aria-hidden="true"><span></span><span></span><span></span></div>
+          </div>
+        </button>
+
+        <div class="expanded-content">
+          <div class="track-top">
+            <div id="art" class="art" aria-hidden="true">✦</div>
+            <div class="track-info">
+              <span id="trackTitle" class="track-title">Midnight City</span>
+              <span id="trackArtist" class="track-artist">M83 · Hurry Up, We're Dreaming</span>
+            </div>
+            <span id="playback" class="playback">Playing</span>
+            <button id="collapse" class="collapse" type="button" aria-label="Collapse music widget">⌃</button>
+          </div>
+          <div class="progress" aria-label="Track progress"><div id="progress" class="progress-fill"></div></div>
+          <div class="times"><span id="elapsed">1:24</span><span id="duration">4:03</span></div>
+          <div class="controls">
+            <button id="previous" class="control" type="button" aria-label="Previous demo track">⏮</button>
+            <button id="playPause" class="control primary" type="button" aria-label="Pause demo playback">Ⅱ</button>
+            <button id="next" class="control" type="button" aria-label="Next demo track">⏭</button>
+          </div>
+        </div>
+      </div>
+      <p id="hint" class="demo-hint">Click the island to expand. Demo controls use sample tracks.</p>
+    </section>
+
+    <aside class="note">
+      <span class="note-icon" aria-hidden="true">ⓘ</span>
+      <span><strong>This is a web preview, not the desktop app.</strong> GitHub Pages can display the design, but it cannot run the Windows Electron app or connect to the local browser extension. Install and run the app on Windows for live browser media controls.</span>
+    </aside>
+
+    <footer>Built as an interactive preview of the Dynamic Island desktop widget.</footer>
+  </main>
+
+  <script>
+    const tracks = [
+      { title: 'Midnight City', artist: "M83 · Hurry Up, We're Dreaming", duration: 243, color: 'linear-gradient(145deg, #e1a3b8, #a35b85 48%, #473863)', art: '✦' },
+      { title: 'Weightless', artist: 'Washed Out · Within and Without', duration: 211, color: 'linear-gradient(145deg, #edc38e, #d37a70 48%, #6f4268)', art: '☼' },
+      { title: 'Sunset Lover', artist: 'Petit Biscuit · Presence', duration: 215, color: 'linear-gradient(145deg, #f3cb85, #e27f5f 48%, #723f68)', art: '☀' }
+    ];
+
+    const island = document.getElementById('island');
+    const compact = document.getElementById('compact');
+    const compactTitle = document.getElementById('compactTitle');
+    const trackTitle = document.getElementById('trackTitle');
+    const trackArtist = document.getElementById('trackArtist');
+    const art = document.getElementById('art');
+    const playback = document.getElementById('playback');
+    const playPause = document.getElementById('playPause');
+    const progress = document.getElementById('progress');
+    const elapsed = document.getElementById('elapsed');
+    const duration = document.getElementById('duration');
+    const equalizer = document.getElementById('equalizer');
+    const collapse = document.getElementById('collapse');
+
+    let trackIndex = 0;
+    let position = 84;
+    let playing = true;
+
+    function formatTime(seconds) {
+      return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+    }
+
+    function render() {
+      const track = tracks[trackIndex];
+      compactTitle.textContent = track.title;
+      trackTitle.textContent = track.title;
+      trackArtist.textContent = track.artist;
+      art.style.background = track.color;
+      art.textContent = track.art;
+      playback.textContent = playing ? 'Playing' : 'Paused';
+      playPause.textContent = playing ? 'Ⅱ' : '▶';
+      playPause.setAttribute('aria-label', playing ? 'Pause demo playback' : 'Play demo playback');
+      equalizer.classList.toggle('paused', !playing);
+      progress.style.width = `${Math.min(100, (position / track.duration) * 100)}%`;
+      elapsed.textContent = formatTime(position);
+      duration.textContent = formatTime(track.duration);
+    }
+
+    function setExpanded(expanded) {
+      island.classList.toggle('expanded', expanded);
+      compact.setAttribute('aria-expanded', String(expanded));
+    }
+
+    function selectTrack(step) {
+      trackIndex = (trackIndex + step + tracks.length) % tracks.length;
+      position = 0;
+      render();
+    }
+
+    compact.addEventListener('click', () => {
+      setExpanded(true);
+    });
+
+    collapse.addEventListener('click', () => {
+      setExpanded(false);
+    });
+
+    island.addEventListener('click', (event) => {
+      if (island.classList.contains('expanded') && !event.target.closest('button')) {
+        setExpanded(false);
+      }
+    });
+
+    document.getElementById('previous').addEventListener('click', () => selectTrack(-1));
+    document.getElementById('next').addEventListener('click', () => selectTrack(1));
+    playPause.addEventListener('click', () => {
+      playing = !playing;
+      render();
+    });
+
+    document.getElementById('clock').textContent = new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit'
+    }).format(new Date());
+    window.setInterval(() => {
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(new Date());
+    }, 15000);
+
+    window.setInterval(() => {
+      if (!playing) return;
+      position = position >= tracks[trackIndex].duration ? 0 : position + 1;
+      render();
+    }, 1000);
+
+    render();
+  </script>
+</body>
+</html>
